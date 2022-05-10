@@ -1,0 +1,5 @@
+mapTopic: 'self_def_maps'
+targetTopic: '/move_base_simple/goal'
+mapBound: [-10,10,-3,3,0,5]
+voxelWidth: 0.25
+dilateRadius: 0.5

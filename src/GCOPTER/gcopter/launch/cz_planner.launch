@@ -1,0 +1,10 @@
+<launch>
+    <param name="local_mapTopic" value="/pcl_render_node/cloud"/>
+    <param name="odomTopic" value="/visual_slam/odom"/>
+    <node pkg="gcopter" type="cz_planner" name="cz_planner_node" output="screen">
+          <rosparam file="$(find gcopter)/config/cz_planner.yaml" command="load" />
+    </node>
+
+    <include file="$(find gcopter)/launch/simulator.xml"/>
+
+</launch>
