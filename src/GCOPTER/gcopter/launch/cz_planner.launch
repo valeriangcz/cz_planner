@@ -4,7 +4,9 @@
     <node pkg="gcopter" type="cz_planner" name="cz_planner_node" output="screen">
           <rosparam file="$(find gcopter)/config/cz_planner.yaml" command="load" />
     </node>
-
+    <node pkg="gcopter" type="trajectory_server" name="trajectoty_server_node" output="screen">
+        <param name="time_forward" value="1"/>
+    </node>
     <include file="$(find gcopter)/launch/simulator.xml"/>
 
 </launch>

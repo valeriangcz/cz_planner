@@ -5,7 +5,7 @@
 #include "gcopter/flatness.hpp"
 #include "gcopter/voxel_map.hpp"
 #include "gcopter/sfc_gen.hpp"
-
+#include "gcopter/traj.h"
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <geometry_msgs/Point.h>
@@ -99,6 +99,7 @@ public:
     ros::Subscriber target_sub;
     ros::Subscriber odom_sub;
     ros::Publisher map_forVis_pub;
+    ros::Publisher traj_pub;
     std::vector<Eigen::Vector3d> startGoal;
     voxel_map::VoxelMap local_map;
     Config config;
@@ -113,6 +114,7 @@ public:
         // map_sub = n_.subscribe("/global_cloud",10,&CZ_planner::mapCallback,this);
         target_sub = n_.subscribe(config.targetTopic,2,&CZ_planner::tragetCallback,this);
         map_forVis_pub = n_.advertise<sensor_msgs::PointCloud2>("local_map",2);
+        traj_pub = n_.advertise<gcopter::traj>("/traj",2);
         odom_sub = n_.subscribe(config.odomTopic, 10,&CZ_planner::odomCallback,this);
         //进行地图初始化，在pcl_render_node/cloud未发布，也就是还没有进入地图回调函数时，先进性初始化
         //在判断终点是否被占用时就会返回没有被占用
@@ -256,8 +258,8 @@ public:
                 if (traj.getPieceNum() > 0)
                 {
                     double duration = ros::Time::now().toSec() - TrajStamp;
-                    iniVec = traj.getVel(duration);
-                    iniAcc = traj.getAcc(duration); 
+                    // iniVec = traj.getVel(duration);
+                    // iniAcc = traj.getAcc(duration); 
                 }
                 iniState << route.front(), iniVec, iniAcc;
                 finState << route.back(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero();
@@ -317,6 +319,19 @@ public:
                     {
                         TrajStamp = ros::Time::now().toSec();
                         //发布轨迹到traj_server
+                        gcopter::traj traj_msg;
+                        traj_msg.startTime = ros::Time::now();
+                        traj_msg.order = 5;
+                        traj_msg.pieceTime = std::vector<double>(
+                          gcopter.traj_piece_time.data(),
+                          gcopter.traj_piece_time.data()+gcopter.traj_piece_time.rows()*gcopter.traj_piece_time.cols()  
+                        );
+                        traj_msg.serialB = std::vector<double>(
+                            gcopter.traj_coeff_mat.data(),
+                            gcopter.traj_coeff_mat.data() + gcopter.traj_coeff_mat.cols()*gcopter.traj_coeff_mat.rows()
+                        );
+                        traj_pub.publish(traj_msg);
+                        ROS_WARN("publish traj");
 
                         visualizer.visualize(traj,route);
                     }

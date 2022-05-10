@@ -46,6 +46,8 @@ namespace gcopter
         typedef std::vector<PolyhedronV> PolyhedraV;
         typedef std::vector<PolyhedronH> PolyhedraH;
 
+        Eigen::VectorXd traj_piece_time;
+        Eigen::MatrixX3d traj_coeff_mat;
     private:
         minco::MINCO_S3NU minco;
         flatness::FlatnessMap flatmap;
@@ -858,7 +860,8 @@ namespace gcopter
                 forwardT(tau, times);
                 forwardP(xi, vPolyIdx, vPolytopes, points);
                 minco.setParameters(points, times);
-                minco.getTrajectory(traj);
+                minco.getTrajectory(traj,traj_piece_time,traj_coeff_mat);
+                
             }
             else
             {

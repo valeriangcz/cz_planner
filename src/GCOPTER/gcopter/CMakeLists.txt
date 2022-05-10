@@ -21,6 +21,8 @@ find_package(catkin REQUIRED COMPONENTS
 
   plan_env
   cv_bridge
+
+  message_generation
 )
 
 include_directories(
@@ -30,10 +32,19 @@ include_directories(
     # ${PCL_INCLUDE_DIRS}
     include
 )
+add_message_files(
+  FILES
+  traj.msg
+)
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp pcl_ros pcl_conversions plan_env
+  CATKIN_DEPENDS roscpp pcl_ros pcl_conversions plan_env message_runtime
 )
+
 
 add_executable(global_planning src/global_planning.cpp)
 
@@ -47,8 +58,15 @@ target_link_libraries(for_test
   ${OMPL_LIBRARIES}
   ${catkin_LIBRARIES})
 
+
   add_executable(cz_planner src/cz_planner.cpp)
   target_link_libraries(cz_planner
     ${OMPL_LIBRARIES}
     ${catkin_LIBRARIES})
   
+
+
+  add_executable(trajectory_server src/trajectory_server.cpp)
+  target_link_libraries(trajectory_server
+    ${OMPL_LIBRARIES}
+    ${catkin_LIBRARIES})

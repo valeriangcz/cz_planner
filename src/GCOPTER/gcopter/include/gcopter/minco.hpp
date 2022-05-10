@@ -524,8 +524,24 @@ namespace minco
                                       .rowwise()
                                       .reverse());
                                       
+                                      
             }
             return;
+        }
+        inline void getTrajectory(Trajectory<5> &traj, Eigen::VectorXd &times,Eigen::MatrixX3d &coeff)
+        {
+            traj.clear();
+            traj.reserve(N);
+            for(int i =0; i < N ; ++i )
+            {
+                traj.emplace_back(T1(i),
+                                  b.block<6,3>(6*i, 0).transpose().rowwise().reverse());
+            }
+            // std::cout <<"##############before get traj####################\n";
+            times.resize(N);
+            coeff.resize(6*N,3);
+            times = T1;
+            coeff = b;
         }
         //交叉相乘项?
         inline void getEnergy(double &energy) const

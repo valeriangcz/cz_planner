@@ -113,14 +113,25 @@ int main(int argc, char** argv){
 
     // ros::spin();
 //    Eigen::VectorXd points_1;
-    ros::Rate rate(1);
-    while (ros::ok())
-    {
-        double time_1 = ros::Time::now().toSec();
-        rate.sleep();
-        double time_2 = ros::Time::now().toSec();
-        std::cout <<"time_1-time_2=" <<time_2-time_1 <<std::endl;
-    }
+    Eigen::VectorXd v1(3);
+    v1 << 1.2,3.4,5.6;
+    Eigen::Matrix3d mat;
+    mat<<v1,v1,v1;
+    // std::vector<double> vec1 = std::vector<double>(v1.data(),v1.data()+v1.rows()*v1.cols());
+    std::vector<double> vec1 = std::vector<double>(mat.data(),mat.data()+mat.rows()*mat.cols());
+    // for(auto x: vec1) std::cout << x<<" ";
+    Eigen::MatrixX3d mat1;
+    mat1.resize(10,3);
+    Eigen::MatrixXd mat2;
+    mat2.resize(3,4);
+    Eigen::VectorXd v2;
+    v2.resize(100);
+    // (3);
+    std::cout << mat1.size() <<std::endl;
+    std::cout << mat2.size() <<std::endl;
+    std::cout << v2.size() <<std::endl;
+    std::cout <<std::endl;
+
     
 
     return 0;
