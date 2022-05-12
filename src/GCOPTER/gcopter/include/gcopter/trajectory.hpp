@@ -321,6 +321,7 @@ private:
     typedef std::vector<Piece<D>> Pieces;
     Pieces pieces;
 public:
+    double startStamp;
     Trajectory() = default;
 
     Trajectory(const std::vector<double> &durs,

@@ -1,5 +1,5 @@
 MapBound:                   [-25.0, 25.0, -25.0,25.0, 0.0, 3.0]
-dilateRadius:               0.2
+dilateRadius:               0.3
 VoxelWidth:                 0.1
 targetTopic:                '/goal'
 # targetTopic:                '/move_base_simple/goal'

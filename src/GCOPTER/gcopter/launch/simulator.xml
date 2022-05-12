@@ -37,7 +37,7 @@
                                 typical: 0.0 ~ 0.5 -->
 
         <param name="complexity"    type="double" value="0.025"/>
-        <param name="fill"          type="double" value="0.12"/>
+        <param name="fill"          type="double" value="0.09"/>
         <param name="fractal"       type="int"    value="1"/>
         <param name="attenuation"   type="double" value="0.1"/>
   </node>

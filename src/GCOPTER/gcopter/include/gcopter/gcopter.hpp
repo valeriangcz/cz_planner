@@ -28,7 +28,7 @@
 #include "gcopter/minco.hpp"
 #include "gcopter/flatness.hpp"
 #include "gcopter/lbfgs.hpp"
-
+#include<ros/ros.h>
 #include <Eigen/Eigen>
 #include <cmath>
 #include <cfloat>
@@ -861,11 +861,11 @@ namespace gcopter
                 forwardP(xi, vPolyIdx, vPolytopes, points);
                 minco.setParameters(points, times);
                 minco.getTrajectory(traj,traj_piece_time,traj_coeff_mat);
-                
+                traj.startStamp = ros::Time::now().toSec();
             }
             else
             {
-                traj.clear();
+                // traj.clear();
                 minCostFunctional = INFINITY;
                 std::cout << "Optimization Failed: "
                           << lbfgs::lbfgs_strerror(ret)

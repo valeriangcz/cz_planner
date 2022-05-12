@@ -29,7 +29,7 @@
 #include <memory>
 #include <vector>
 #include <Eigen/Eigen>
-
+#include <ros/ros.h>
 namespace voxel_map
 {
 
@@ -41,6 +41,12 @@ namespace voxel_map
     {
 
     public:
+        ros::NodeHandle nh;
+        typedef std::shared_ptr<VoxelMap> Ptr;
+        VoxelMap(ros::NodeHandle & n):nh(n)
+        {
+            
+        }
         VoxelMap() = default;
         VoxelMap(const Eigen::Vector3i &size,
                  const Eigen::Vector3d &origin,

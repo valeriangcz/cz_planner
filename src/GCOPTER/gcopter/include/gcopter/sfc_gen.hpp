@@ -38,7 +38,6 @@
 #include <deque>
 #include <memory>
 #include <Eigen/Eigen>
-
 namespace sfc_gen
 {
 
@@ -174,12 +173,12 @@ namespace sfc_gen
             //在a周围，b周围和两者中点生成
             if (valid_pc.size() == 0)
             {
-                valid_pc.emplace_back(Eigen::Vector3d (a.array()+1));
-                valid_pc.emplace_back(Eigen::Vector3d (a.array()-1));
-                valid_pc.emplace_back(Eigen::Vector3d (b.array()-1));
-                valid_pc.emplace_back(Eigen::Vector3d (b.array()+1));
-                valid_pc.emplace_back(Eigen::Vector3d ((b.array()+a.array())/2+1));
-                valid_pc.emplace_back(Eigen::Vector3d ((b.array()+a.array())/2-1));
+                valid_pc.emplace_back(Eigen::Vector3d (a.array()+2));
+                // valid_pc.emplace_back(Eigen::Vector3d (a.array()-1));
+                // valid_pc.emplace_back(Eigen::Vector3d (b.array()-1));
+                valid_pc.emplace_back(Eigen::Vector3d (b.array()+2));
+                // valid_pc.emplace_back(Eigen::Vector3d ((b.array()+a.array())/2+2));
+                // valid_pc.emplace_back(Eigen::Vector3d ((b.array()+a.array())/2-2));
             }
             // std::cout <<"num of valid_pc = " <<valid_pc.size() <<std::endl;
 
@@ -226,7 +225,7 @@ namespace sfc_gen
             {
                 if (j < i - 1)
                 {
-                    overlap = geo_utils::overlap(htemp[i], htemp[j], 0.01);
+                    overlap = geo_utils::overlap(htemp[i], htemp[j], 0.001);
                 }
                 else
                 {

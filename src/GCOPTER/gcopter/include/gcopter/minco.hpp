@@ -537,11 +537,15 @@ namespace minco
                 traj.emplace_back(T1(i),
                                   b.block<6,3>(6*i, 0).transpose().rowwise().reverse());
             }
-            // std::cout <<"##############before get traj####################\n";
             times.resize(N);
             coeff.resize(6*N,3);
             times = T1;
+            // std::cout <<"##################\n";
+            // std::cout << T1.transpose() <<std::endl;
             coeff = b;
+            // std::cout <<"##################\n";
+            // std::cout << b <<std::endl;
+            // std::cout <<"##################\n";
         }
         //交叉相乘项?
         inline void getEnergy(double &energy) const

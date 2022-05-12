@@ -2,7 +2,7 @@ MapTopic:                   '/voxel_map'
 
 TargetTopic:                '/move_base_simple/goal'
 
-DilateRadius:               0.3
+DilateRadius:               0.1
 
 VoxelWidth:                 0.1
 

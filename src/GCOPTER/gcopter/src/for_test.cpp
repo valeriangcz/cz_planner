@@ -5,7 +5,8 @@
 #include"gcopter/sfc_gen.hpp"
 #include"gcopter/test_gcopter.hpp"
 #include<plan_env/grid_map.h>
-
+#include"gcopter/trajectory.hpp"
+#include"gcopter/dynamic_a_star.hpp"
 using namespace std;
 void eigen_map(){
     Eigen::VectorXd x(3+4);
@@ -85,54 +86,83 @@ public:
 };
 
 
+class test_a_star
+{
+public:
+    ros::NodeHandle nh;
+    ros::Subscriber map_sub;
+    ros::Subscriber target_sub;
+    std::vector<Eigen::Vector3d> startGoal;
+    Visualizer vis;
+    voxel_map::VoxelMap::Ptr voxelMap;
+    AStar::Ptr a_star;
+    bool map_init;
+    void mapCallBack(const sensor_msgs::PointCloud2::ConstPtr & msg)
+    {
+        if (map_init) return;
+        const Eigen::Vector3i xyz({500,500,30});
+        const Eigen::Vector3d offset({-25.0,-25.0,0.0});
+        voxelMap.reset(new voxel_map::VoxelMap(xyz,offset,0.1));
+         size_t cur = 0;
+        const size_t total = msg->data.size() / msg->point_step;
+        float* fdata = (float*) (&msg->data[0]);
 
+        for (size_t i =0 ; i < total; ++i )
+        {   
+            cur = msg->point_step / sizeof(float) *i ;
+            if (std::isnan(fdata[cur + 0]) || std::isinf(fdata[cur + 0]) ||
+                std::isnan(fdata[cur + 1]) || std::isinf(fdata[cur + 1]) ||
+                std::isnan(fdata[cur + 2]) || std::isinf(fdata[cur + 2]))
+            {
+                continue;
+            }
+            voxelMap->setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
+        }
+        voxelMap->dilate(2);
+        map_init = true;
+        a_star->initGridMap(voxelMap,Eigen::Vector3i(500,500,300));
+        ROS_WARN("map received, A star is ready");
+    }
+    void targetCallBack(const geometry_msgs::PoseStamped::ConstPtr & msg)
+    {
+        if(!map_init) return;
+        if( startGoal.size() >= 2 ) startGoal.clear();
+        const Eigen::Vector3d goal( msg->pose.position.x,msg->pose.position.y,msg->pose.position.z);
+        if( voxelMap->query(goal) == 0 )
+        {
+            vis.visualizeStartGoal(goal,0.3,startGoal.size());
+            startGoal.emplace_back(goal);
+            ROS_WARN("set a goal");
+        }
+        a_star_search();
+
+    }
+    test_a_star(ros::NodeHandle & n):nh(n),vis(n),map_init(false)
+    {
+        map_sub = n.subscribe("/global_cloud",10,&test_a_star::mapCallBack,this);
+        target_sub = n.subscribe("/goal",10,&test_a_star::targetCallBack,this);
+        a_star.reset( new AStar);
+    }
+    void a_star_search()
+    {
+        if(startGoal.size() != 2 ) return;
+        if(a_star->AstarSearch(0.1,startGoal[0],startGoal[1]))
+        {
+            ROS_WARN("a star search");
+            std::vector<Eigen::Vector3d> route;
+            route = a_star->getPath();
+            Trajectory<5> traj;
+            vis.visualize(traj,route);
+        }
+    }
+};
 
 
 
 int main(int argc, char** argv){
-    // L_BFGS L_1(2);
-    // L_1.optimize();
-
-    // eigen_map();
-    // eigne_normal();
-    // cout << "hello\n";
-    // std::cout<<"for test\n";
-    // test_voxelMap(argc, argv);
-    
     ros::init(argc, argv,"for_test");
     ros::NodeHandle nh("~");
-    // test_gcopter gcoper(nh);
-    // ros::Rate rate(10);
-    // while(ros::ok())
-    // {
-    //     ros::spinOnce();
-    //     rate.sleep();
-    // }
-    // GridMap gridmap;
-    // gridmap.initMap(nh);
+    test_a_star a(nh);
+    ros::spin();
 
-    // ros::spin();
-//    Eigen::VectorXd points_1;
-    Eigen::VectorXd v1(3);
-    v1 << 1.2,3.4,5.6;
-    Eigen::Matrix3d mat;
-    mat<<v1,v1,v1;
-    // std::vector<double> vec1 = std::vector<double>(v1.data(),v1.data()+v1.rows()*v1.cols());
-    std::vector<double> vec1 = std::vector<double>(mat.data(),mat.data()+mat.rows()*mat.cols());
-    // for(auto x: vec1) std::cout << x<<" ";
-    Eigen::MatrixX3d mat1;
-    mat1.resize(10,3);
-    Eigen::MatrixXd mat2;
-    mat2.resize(3,4);
-    Eigen::VectorXd v2;
-    v2.resize(100);
-    // (3);
-    std::cout << mat1.size() <<std::endl;
-    std::cout << mat2.size() <<std::endl;
-    std::cout << v2.size() <<std::endl;
-    std::cout <<std::endl;
-
-    
-
-    return 0;
 }

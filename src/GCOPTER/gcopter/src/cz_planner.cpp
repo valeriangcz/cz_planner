@@ -14,7 +14,7 @@
 #include <nav_msgs/Odometry.h>
 #include<pcl_conversions/pcl_conversions.h>
 #include<pcl/point_cloud.h>
-
+#include"gcopter/dynamic_a_star.hpp"
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -100,21 +100,31 @@ public:
     ros::Subscriber odom_sub;
     ros::Publisher map_forVis_pub;
     ros::Publisher traj_pub;
+
+    Eigen::Vector3d odom_vel;
+
     std::vector<Eigen::Vector3d> startGoal;
     voxel_map::VoxelMap local_map;
+    voxel_map::VoxelMap::Ptr local_map_ptr;
+    AStar::Ptr a_star;
     Config config;
     Visualizer visualizer;
     Trajectory<5> traj;
-    double TrajStamp;
 
+
+    ros::Publisher pos_pub;
+    ros::Publisher vel_pub;
+    ros::Publisher acc_pub;
     CZ_planner(ros::NodeHandle &n_):nh(n_),config(n_),visualizer(n_)
     {
-        
+        pos_pub = nh.advertise<geometry_msgs::PoseStamped>("/pos",10);
+        vel_pub = nh.advertise<geometry_msgs::PoseStamped>("/vel",10);
+        acc_pub = nh.advertise<geometry_msgs::PoseStamped>("/acc",10);
         map_sub = n_.subscribe(config.mapTopic,10,&CZ_planner::mapCallback,this);
         // map_sub = n_.subscribe("/global_cloud",10,&CZ_planner::mapCallback,this);
         target_sub = n_.subscribe(config.targetTopic,2,&CZ_planner::tragetCallback,this);
         map_forVis_pub = n_.advertise<sensor_msgs::PointCloud2>("local_map",2);
-        traj_pub = n_.advertise<gcopter::traj>("/traj",2);
+        traj_pub = n_.advertise<gcopter::traj>("/traj",1);
         odom_sub = n_.subscribe(config.odomTopic, 10,&CZ_planner::odomCallback,this);
         //进行地图初始化，在pcl_render_node/cloud未发布，也就是还没有进入地图回调函数时，先进性初始化
         //在判断终点是否被占用时就会返回没有被占用
@@ -125,7 +135,9 @@ public:
         const Eigen::Vector3d offset(config.mapBound[0], config.mapBound[2], config.mapBound[4]);
         
         local_map = voxel_map::VoxelMap(xyz, offset, config.voxelWidth);
-        
+        local_map_ptr.reset(new voxel_map::VoxelMap(xyz,offset,config.voxelWidth));
+        a_star.reset(new AStar);
+        a_star->initGridMap(local_map_ptr,xyz);
     }
 
     inline void mapCallback(const sensor_msgs::PointCloud2::ConstPtr & msg)
@@ -153,8 +165,14 @@ public:
                 continue;
             }
             local_map.setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
+
+            local_map_ptr->setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
         }
         local_map.dilate(std::ceil(config.dilateRadius/local_map.getScale()));
+
+        local_map_ptr->dilate(std::ceil(config.dilateRadius/local_map.getScale()));
+        a_star->initGridMap(local_map_ptr,xyz);
+        ROS_WARN("a star map intialized");
         //将接收到的点云进行发布，用于可视化
         pcl::PointCloud<pcl::PointXYZ> local_cloud;
         pcl::fromROSMsg(*msg, local_cloud);
@@ -183,22 +201,14 @@ public:
         }
         if (startGoal.size() == 2)
         {
-            for ( int i =0; i < 5; ++i )
-            {
-                if (plan()) 
-                {
-                    //将轨迹信息发布出去，参考ego-planner 中的traj_server需要哪些信息
-                    //自定义traj消息类型
-                    //编写traj
-                    break;
-                }
-            }
+            plan();
         }
     }
     inline void odomCallback(const nav_msgs::Odometry::ConstPtr & msg)
     {
         //首先保障startGoal的第一个坐标是无人机当前的odom
         Eigen::Vector3d cur_pos(msg->pose.pose.position.x,msg->pose.pose.position.y,msg->pose.pose.position.z);
+        odom_vel = Eigen::Vector3d(msg->twist.twist.linear.x,msg->twist.twist.linear.y,msg->twist.twist.linear.z);
         if (startGoal.size() >= 1)
         {
             startGoal[0] = cur_pos;
@@ -208,34 +218,102 @@ public:
             startGoal.emplace_back(cur_pos);
         }
         //进行可视化
-        visualizer.visualizeSphere(cur_pos,0.3);
+        // visualizer.visualizeSphere(cur_pos,0.3);
         //replan条件1，当前的odom与vehicLastPos距离超过无人机感知范围的2/3
         // Eigen::Vector3cd last_pos(config.vehicLastPos[0],config.vehicLastPos[1],config.vehicLastPos[2]);
         Eigen::Map<Eigen::Vector3d> last_pos(config.vehicLastPos.data(),3);
-        if ( (cur_pos-last_pos).norm() > config.sensing_horizon*2.0 / 3.0 )
+        if ( (cur_pos-last_pos).norm() > config.sensing_horizon*2.00 / 3.0 )
         {
             config.vehicLastPos = {cur_pos[0],cur_pos[1],cur_pos[2]};
             //进行重规划
-            for(int i=0 ; i < 5; ++i ) if(plan()) break;
+            plan();
         }
-        //replan条件2, 当前执行的轨迹与障碍物发生了碰撞
-        //碰撞检查，计算从当前起到未来一段时间内是否碰撞，参考ego_planner
+        
+        geometry_msgs::PoseStamped pos_msg;
+        geometry_msgs::PoseStamped vel_msg;
+        geometry_msgs::PoseStamped acc_msg;
+        //计算traj的位置速度和加速度，进行发布
+        if (traj.getPieceNum() > 0)
+        {
+            Eigen::Vector3d temp;
+            double duration = ros::Time::now().toSec() - traj.startStamp;
+            // std::cout <<"when replan duration is = "<< duration<<std::endl;
+            // std::cout <<"total traj time is "<<traj.getTotalDuration() <<std::endl;
+            if ( duration >=0 && duration < traj.getTotalDuration())
+            {   
+                temp = traj.getPos(duration);
+                pos_msg.header.stamp = ros::Time::now();
+                pos_msg.pose.position.x = temp[0];
+                pos_msg.pose.position.y = temp[1];
+                pos_msg.pose.position.z = temp[2];
+                pos_pub.publish(pos_msg);
+                temp = traj.getVel(duration);
+                vel_msg.header.stamp = ros::Time::now();
+                vel_msg.pose.position.x = temp[0];
+                vel_msg.pose.position.y = temp[1];
+                vel_msg.pose.position.z = temp[2];
+                vel_pub.publish(vel_msg);
+                temp = traj.getAcc(duration);
+                acc_msg.header.stamp = ros::Time::now();
+                acc_msg.pose.position.x = temp[0];
+                acc_msg.pose.position.y = temp[1];
+                acc_msg.pose.position.z = temp[2];
+                acc_pub.publish(acc_msg);
+            }
+            
+        }
+        
+        //replan条件2, 当前执行的轨迹与障碍物发生了碰撞,只检查2/3的轨迹
+        if (traj.getPieceNum() > 0)
+        {
+            double time_step = 0.01;
+            double t_cur = ros::Time::now().toSec() - traj.startStamp;
+            double t_feature = t_cur;
+            double time_emergency = 0.8;
+            while ( t_feature > 0 && t_feature < 1.0*traj.getTotalDuration() / 3.0 )
+            {
+                Eigen::Vector3d feature_pos = traj.getPos(t_feature);
+                if (local_map.query(feature_pos) == 1 )
+                {
+                    //发生碰撞
+                    if( t_feature - t_cur < time_emergency )
+                    {
+                        //紧急停止，发布一条静止的轨迹
+                        ROS_WARN("call emergency stop");
+                        gcopter::traj traj_msg;
+                        traj_msg.emergency_stop = 1;
+                        traj_msg.stop_pos = std::vector<double>(cur_pos.data(),cur_pos.data()+cur_pos.size());
+                        traj_pub.publish(traj_msg);
+                    }
+                    //进行replan
+                    plan();
+                    break;
+                }
+                t_feature += time_step;
+            }
+        }
+       
+        //
+
     }
-    inline bool plan()
+    inline void plan()
     {
         if (startGoal.size() == 2)
         {
+            visualizer.visualizeSphere(startGoal[0],0.2);
 
             std::vector<Eigen::Vector3d> route;
-            sfc_gen::planPath<voxel_map::VoxelMap>(startGoal[0],
-                                                   startGoal[1],
-                                                   local_map.getOrigin(),
-                                                   local_map.getCorner(),
-                                                   &local_map, config.timeoutRRT,
-                                                   route);
+            // sfc_gen::planPath<voxel_map::VoxelMap>(startGoal[0],
+            //                                        startGoal[1],
+            //                                        local_map.getOrigin(),
+            //                                        local_map.getCorner(),
+            //                                        &local_map, config.timeoutRRT,
+            //                                        route);
+            a_star->AstarSearch(0.1,startGoal[0],startGoal[1]);
+            route = a_star->getPath();
             std::vector<Eigen::MatrixX4d> hPolys;
             std::vector<Eigen::Vector3d> pc;
-
+            std::cout <<"size of route =  "<<route.size()<<std::endl;
             local_map.getSurf(pc);
             sfc_gen::convexCover(route,
                                  pc,
@@ -252,16 +330,24 @@ public:
 
                 Eigen::Matrix3d iniState;
                 Eigen::Matrix3d finState;
+                Eigen::Vector3d iniPos = route.front();
                 Eigen::Vector3d iniVec = Eigen::Vector3d::Zero();
                 Eigen::Vector3d iniAcc = Eigen::Vector3d::Zero();
                 //起始状态需要根据当前执行的轨迹计算速度和加速度
                 if (traj.getPieceNum() > 0)
                 {
-                    double duration = ros::Time::now().toSec() - TrajStamp;
-                    // iniVec = traj.getVel(duration);
-                    // iniAcc = traj.getAcc(duration); 
+                    // ROS_WARN("cal init state");
+                    double duration = ros::Time::now().toSec() - traj.startStamp;
+                    if (duration >=0 && duration < traj.getTotalDuration() )
+                    {
+                        iniVec = traj.getVel(duration);
+                        // std::cout <<"cal_vel="<<iniVec.transpose()<<std::endl;
+                        iniAcc = traj.getAcc(duration); 
+                        // std::cout <<"cal_acc="<<iniAcc.transpose()<<std::endl;
+                    }
                 }
-                iniState << route.front(), iniVec, iniAcc;
+            
+                iniState << iniPos, iniVec, iniAcc;
                 finState << route.back(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero();
 
                 gcopter::GCOPTER_PolytopeSFC gcopter;
@@ -293,54 +379,40 @@ public:
 
                 traj.clear();
                 // std::cout <<"4\n";
-                
-                if (!gcopter.setup(config.weightT,
-                                   iniState, finState,
-                                   hPolys, INFINITY,
-                                   config.smoothingEps,
-                                   quadratureRes,
-                                   magnitudeBounds,
-                                   penaltyWeights,
-                                   physicalParams))
+                //进行5次优化
+                for (int i =0; i < 5; ++i )
                 {
-                    return false;
-                }
-                // std::cout <<"5\n";
-                
-                if (std::isinf(gcopter.optimize(traj,config.relCostTol)))
-                { 
-                    ROS_WARN("traj optimize fialed");
-                    return false;
-                }
-
-                else
-                {
-                    if (traj.getPieceNum() > 0)
+                    if ( gcopter.setup(config.weightT,iniState, finState,
+                                   hPolys,INFINITY,config.smoothingEps,quadratureRes,
+                                   magnitudeBounds,penaltyWeights,physicalParams))
                     {
-                        TrajStamp = ros::Time::now().toSec();
-                        //发布轨迹到traj_server
-                        gcopter::traj traj_msg;
-                        traj_msg.startTime = ros::Time::now();
-                        traj_msg.order = 5;
-                        traj_msg.pieceTime = std::vector<double>(
-                          gcopter.traj_piece_time.data(),
-                          gcopter.traj_piece_time.data()+gcopter.traj_piece_time.rows()*gcopter.traj_piece_time.cols()  
-                        );
-                        traj_msg.serialB = std::vector<double>(
-                            gcopter.traj_coeff_mat.data(),
-                            gcopter.traj_coeff_mat.data() + gcopter.traj_coeff_mat.cols()*gcopter.traj_coeff_mat.rows()
-                        );
-                        traj_pub.publish(traj_msg);
-                        ROS_WARN("publish traj");
+                        if(!std::isinf(gcopter.optimize(traj,config.relCostTol)))
+                        {
+                            if (traj.getPieceNum() > 0)
+                            {
+                                //发布轨迹到traj_server
+                                gcopter::traj traj_msg;
+                                traj_msg.startTime = ros::Time::now();
+                                traj_msg.order = 5;
+                                traj_msg.pieceTime = std::vector<double>(
+                                gcopter.traj_piece_time.data(),
+                                gcopter.traj_piece_time.data()+gcopter.traj_piece_time.rows()*gcopter.traj_piece_time.cols()  
+                                );
+                                traj_msg.serialB = std::vector<double>(
+                                    gcopter.traj_coeff_mat.data(),
+                                    gcopter.traj_coeff_mat.data() + gcopter.traj_coeff_mat.cols()*gcopter.traj_coeff_mat.rows()
+                                );
+                                traj_pub.publish(traj_msg);
+                                // ROS_WARN("publish traj");
 
-                        visualizer.visualize(traj,route);
+                                visualizer.visualize(traj,route);
+                                break;
+                            }
+                        }
                     }
-                    return true;
                 }
-              
             }
         }
-        return false;
     }
 
 };

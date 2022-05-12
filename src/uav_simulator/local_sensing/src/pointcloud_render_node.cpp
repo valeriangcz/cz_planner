@@ -148,7 +148,6 @@ void renderSensedPoints(const ros::TimerEvent& event) {
 
   pcl::toROSMsg(_local_map, _local_map_pcd);
   _local_map_pcd.header.frame_id = "map";
-
   pub_cloud.publish(_local_map_pcd);
 }
 
