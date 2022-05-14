@@ -1,14 +1,16 @@
 <launch>
 <!-- 无人机初始位置, 修改时需要同时修改cz_planner.yaml中的vehicInitPos   -->
-   <arg name="init_x" value="-4.0"/>
+   <arg name="init_x" value="-20.0"/>
    <arg name="init_y" value="0.0"/>
    <arg name="init_z" value="1.0"/>
-<!-- 地图大小 -->
+<!-- 地图大小与分辨率 -->
     <arg name="map_size_x" value="50"/>
-    <arg name="map_size_y" value="50"/>
-    <arg name="map_size_z" value="3"/>
+    <arg name="map_size_y" value="15"/>
+    <arg name="map_size_z" value="6"/>
+    <arg name="resolution" value="0.1"/>
 <!-- 无人机odom topic -->
     <arg name="odometry_topic" value="/visual_slam/odom"/>
+
 
 
 <!-- 生成地图 -->
@@ -18,14 +20,14 @@
         <param name="update_freq" type="double" value="0.5"/>
 
         <!--  box edge length, unit meter-->
-        <param name="resolution" type="double" value="0.1"/>
+        <param name="resolution" type="double" value="$(arg resolution)"/>
 
         <!-- map size unit meter-->
         <param name="x_length" value="$(arg map_size_x)"/>
         <param name="y_length" value="$(arg map_size_y)"/>
         <param name="z_length" value="$(arg map_size_z)"/>
 
-        <param name="type" type="int" value="2"/>
+        <param name="type" type="int" value="1"/>
         <!-- 1 perlin noise parameters -->
         <!-- complexity:    base noise frequency,
                                 large value will be complex
@@ -41,7 +43,32 @@
         <param name="fractal"       type="int"    value="1"/>
         <param name="attenuation"   type="double" value="0.1"/>
   </node>
+<!-- 生成动态障碍物 -->
+  <!-- <node pkg="plan_env" name="dynamic_obj_generator_node" type="dynamic_obj_generator" output="screen"> -->
 
+    <!-- <param name="obj_generator/startX" value="10"/>
+    <param name="obj_generator/endX" value="20"/> -->
+
+    <param name="obj_generator/obj_num" value="20"/>    
+    <param name="obj_generator/x_size" value="$(arg map_size_x)"/> 
+    <param name="obj_generator/y_size" value="$(arg map_size_y)"/>  
+    <param name="obj_generator/h_size" value="3"/>   
+    <param name="obj_generator/vel" value="1"/>
+    <param name="obj_generator/vel2" value="1.1"/>
+    <param name="obj_generator/yaw_dot" value="2.0"/>   
+    <param name="obj_generator/acc_r1" value="1.0"/>   
+    <param name="obj_generator/acc_r2" value="1.0"/>   
+    <param name="obj_generator/acc_z" value="0.0"/>   
+    <param name="obj_generator/scale1x" value="0.3"/>   
+    <param name="obj_generator/scale2x" value="0.5"/>    
+    <param name="obj_generator/scale1y" value="0.3"/>   
+    <param name="obj_generator/scale2y" value="0.5"/>  
+    <param name="obj_generator/scale1z" value="2"/>   
+    <param name="obj_generator/scale2z" value="3"/> 
+    <param name="obj_generator/interval" value="100.0"/>    
+    <param name="obj_generator/input_type" value="1"/> <!-- 1: Vel input, 2: Acc input-->
+    <param name="obj_generator/resolution" value="$(arg resolution)"/>
+  <!-- </node> -->
    <!-- Simulator -->
    <node pkg="so3_quadrotor_simulator"
          type="quadrotor_simulator_so3"

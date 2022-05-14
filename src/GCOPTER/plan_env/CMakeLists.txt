@@ -47,3 +47,10 @@ target_link_libraries( plan_env
     ${catkin_LIBRARIES} 
     ${PCL_LIBRARIES}
     )  
+
+add_executable(dynamic_obj_generator src/dynamic_obj_generator.cpp)
+target_link_libraries(
+    dynamic_obj_generator
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+)

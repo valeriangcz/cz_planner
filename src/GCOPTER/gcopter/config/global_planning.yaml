@@ -1,13 +1,14 @@
 MapTopic:                   '/voxel_map'
 
-TargetTopic:                '/move_base_simple/goal'
+# TargetTopic:                '/move_base_simple/goal'
+TargetTopic:                '/goal'
 
 DilateRadius:               0.1
 
 VoxelWidth:                 0.1
 
 # MapBound:                   [0.0, 50.0, 0.0, 50.0, 0.0, 5.0]
-MapBound:                   [-25.0, 25.0, -25.0, 25.0, 0.0, 5.0]
+MapBound:                   [-25.0, 25.0, -25, 25, 0, 3.0]
 
 TimeoutRRT:                 0.02
 

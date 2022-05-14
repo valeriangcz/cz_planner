@@ -89,7 +89,8 @@ public:
 
 inline double AStar::getHeu(GridNodePtr node1, GridNodePtr node2)
 {
-	return tie_breaker_ * getDiagHeu(node1, node2);
+	// return tie_breaker_ * getDiagHeu(node1, node2);
+    return tie_breaker_ * getEuclHeu(node1,node2);
 }
 
 inline Eigen::Vector3d AStar::Index2Coord(const Eigen::Vector3i &index) const
@@ -125,7 +126,7 @@ AStar::~AStar()
 void AStar::initGridMap(voxel_map::VoxelMap::Ptr occ_map, const Eigen::Vector3i pool_size)
 {
     POOL_SIZE_ = pool_size;
-    std::cout <<"################pool size is" <<pool_size.transpose()<<"########################" <<std::endl;
+    // std::cout <<"################pool size is" <<pool_size.transpose()<<"########################" <<std::endl;
     CENTER_IDX_ = pool_size / 2;
 
     GridNodeMap_ = new GridNodePtr **[POOL_SIZE_(0)];

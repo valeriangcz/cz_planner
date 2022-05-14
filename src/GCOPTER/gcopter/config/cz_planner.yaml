@@ -1,11 +1,11 @@
-MapBound:                   [-25.0, 25.0, -25.0,25.0, 0.0, 3.0]
+MapBound:                   [-25.0, 25.0, -7.5,7.5, 0.0, 6.0]
 dilateRadius:               0.3
 VoxelWidth:                 0.1
 targetTopic:                '/goal'
 # targetTopic:                '/move_base_simple/goal'
 TimeoutRRT:                 0.02
 
-MaxVelMag:                  4.0
+MaxVelMag:                  3.0
 
 MaxBdrMag:                  2.1
 
@@ -13,7 +13,7 @@ MaxTiltAngle:               1.05
 
 MinThrust:                  2.0
 
-MaxThrust:                  12.0
+MaxThrust:                  8.0
 
 VehicleMass:                0.61
 

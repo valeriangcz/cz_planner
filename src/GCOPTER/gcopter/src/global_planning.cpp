@@ -177,7 +177,10 @@ public:
 
                 Eigen::Matrix3d iniState;
                 Eigen::Matrix3d finState;
-                iniState << route.front(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero();
+                // iniState << route.front(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero();
+                Eigen::Vector3d iniVec(1.2,-3.4,2);
+                Eigen::Vector3d iniAcc(0.4,0.2,0.3);
+                iniState << route.front(), iniVec, iniAcc;
                 finState << route.back(), Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero();
 
                 gcopter::GCOPTER_PolytopeSFC gcopter;
@@ -328,7 +331,7 @@ int main(int argc, char **argv)
 
     GlobalPlanner global_planner(Config(ros::NodeHandle("~")), nh_);
 
-    ros::Rate lr(1);
+    ros::Rate lr(100);
     while (ros::ok())
     {
         global_planner.process();

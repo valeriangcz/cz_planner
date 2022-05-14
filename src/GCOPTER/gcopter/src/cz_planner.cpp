@@ -135,9 +135,9 @@ public:
         const Eigen::Vector3d offset(config.mapBound[0], config.mapBound[2], config.mapBound[4]);
         
         local_map = voxel_map::VoxelMap(xyz, offset, config.voxelWidth);
-        local_map_ptr.reset(new voxel_map::VoxelMap(xyz,offset,config.voxelWidth));
-        a_star.reset(new AStar);
-        a_star->initGridMap(local_map_ptr,xyz);
+        // local_map_ptr.reset(new voxel_map::VoxelMap(xyz,offset,config.voxelWidth));
+        // a_star.reset(new AStar);
+        // a_star->initGridMap(local_map_ptr,xyz);
     }
 
     inline void mapCallback(const sensor_msgs::PointCloud2::ConstPtr & msg)
@@ -166,13 +166,12 @@ public:
             }
             local_map.setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
 
-            local_map_ptr->setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
+            // local_map_ptr->setOccupied(Eigen::Vector3d(fdata[cur+0],fdata[cur+1],fdata[cur+2]));
         }
         local_map.dilate(std::ceil(config.dilateRadius/local_map.getScale()));
 
-        local_map_ptr->dilate(std::ceil(config.dilateRadius/local_map.getScale()));
-        a_star->initGridMap(local_map_ptr,xyz);
-        ROS_WARN("a star map intialized");
+        // local_map_ptr->dilate(std::ceil(config.dilateRadius/local_map.getScale()));
+        // a_star->initGridMap(local_map_ptr,xyz);
         //将接收到的点云进行发布，用于可视化
         pcl::PointCloud<pcl::PointXYZ> local_cloud;
         pcl::fromROSMsg(*msg, local_cloud);
@@ -181,8 +180,6 @@ public:
         local_cloud_msg.header.frame_id = "world";
         map_forVis_pub.publish(local_cloud_msg);
     }
-
-
     inline void tragetCallback(const geometry_msgs::PoseStamped::ConstPtr & msg)
     {
         if (startGoal.size() >= 2 )
@@ -270,7 +267,7 @@ public:
             double t_cur = ros::Time::now().toSec() - traj.startStamp;
             double t_feature = t_cur;
             double time_emergency = 0.8;
-            while ( t_feature > 0 && t_feature < 1.0*traj.getTotalDuration() / 3.0 )
+            while ( t_feature > 0 && t_feature < 2.0*traj.getTotalDuration() / 3.0 )
             {
                 Eigen::Vector3d feature_pos = traj.getPos(t_feature);
                 if (local_map.query(feature_pos) == 1 )
@@ -303,14 +300,15 @@ public:
             visualizer.visualizeSphere(startGoal[0],0.2);
 
             std::vector<Eigen::Vector3d> route;
-            // sfc_gen::planPath<voxel_map::VoxelMap>(startGoal[0],
-            //                                        startGoal[1],
-            //                                        local_map.getOrigin(),
-            //                                        local_map.getCorner(),
-            //                                        &local_map, config.timeoutRRT,
-            //                                        route);
-            a_star->AstarSearch(0.1,startGoal[0],startGoal[1]);
-            route = a_star->getPath();
+            sfc_gen::planPath<voxel_map::VoxelMap>(startGoal[0],
+                                                   startGoal[1],
+                                                   local_map.getOrigin(),
+                                                   local_map.getCorner(),
+                                                   &local_map, config.timeoutRRT,
+                                                   route);
+            // a_star->AstarSearch(0.1,startGoal[0],startGoal[1]);
+            // ROS_WARN("A star search");
+            // route = a_star->getPath();
             std::vector<Eigen::MatrixX4d> hPolys;
             std::vector<Eigen::Vector3d> pc;
             std::cout <<"size of route =  "<<route.size()<<std::endl;
@@ -337,9 +335,10 @@ public:
                 if (traj.getPieceNum() > 0)
                 {
                     // ROS_WARN("cal init state");
-                    double duration = ros::Time::now().toSec() - traj.startStamp;
+                    double duration = ros::Time::now().toSec() - traj.startStamp + 0.02;
                     if (duration >=0 && duration < traj.getTotalDuration() )
-                    {
+                    {   
+                        // iniPos = traj.getPos(duration);
                         iniVec = traj.getVel(duration);
                         // std::cout <<"cal_vel="<<iniVec.transpose()<<std::endl;
                         iniAcc = traj.getAcc(duration); 

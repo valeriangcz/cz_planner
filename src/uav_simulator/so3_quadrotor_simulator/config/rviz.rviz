@@ -7,12 +7,7 @@ Panels:
         - /Global Options1
         - /Grid1
         - /UAV1
-        - /PointCloud22
-        - /Marker2
-        - /Marker3
-        - /Marker4
-        - /Marker5
-        - /Marker6
+        - /PointCloud23
       Splitter Ratio: 0.49444442987442017
     Tree Height: 719
   - Class: rviz/Selection
@@ -161,7 +156,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -176,12 +171,12 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
-    - Alpha: 0.10000000149011612
+      Value: false
+    - Alpha: 0.5
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: -9999
-        Min Value: 9999
+        Max Value: 3.5999999046325684
+        Min Value: 0
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -254,6 +249,62 @@ Visualization Manager:
         waypoints: true
       Queue Size: 100
       Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 2.6500000953674316
+        Min Value: 0.25
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.10000000149011612
+      Style: Boxes
+      Topic: /pcl_render_node/cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 0.5
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /pcl_render_node/pcl_render/dynamic_pre_obj
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 89; 89; 89
@@ -284,7 +335,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 57.827110290527344
+      Distance: 46.60234832763672
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -292,17 +343,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.16783231496810913
-        Y: 5.798691749572754
-        Z: -9.294577598571777
+        X: -2.9088640213012695
+        Y: 7.578174591064453
+        Z: -9.820273399353027
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.3847965002059937
+      Pitch: 0.7797971963882446
       Target Frame: <Fixed Frame>
-      Yaw: 1.5666934251785278
+      Yaw: 4.5098724365234375
     Saved: ~
 Window Geometry:
   Displays:

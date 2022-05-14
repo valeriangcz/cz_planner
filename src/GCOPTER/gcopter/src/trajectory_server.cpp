@@ -156,7 +156,7 @@ void cmdCallBack(const ros::TimerEvent &e)
     static ros::Time time_last = ros::Time::now();
     if (receive_traj_ == 2 )
     {
-        ROS_WARN("emergency stop!!!");
+        // ROS_WARN("emergency stop!!!");
         pos = Eigen::Map<Eigen::Vector3d>(emergency_stopPos.data(),3);
     }
     //每一次进入cmdCallBack的时间
